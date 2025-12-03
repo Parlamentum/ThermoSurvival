@@ -1,6 +1,11 @@
 # ❄️🔥 ThermoSurvival
 > **Survive the Elements. Master the Temperature.**
 
+![Java Version](https://img.shields.io/badge/Java-17%2B-orange)
+![Minecraft Version](https://img.shields.io/badge/Minecraft-1.20%2B-green)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![Version](https://img.shields.io/badge/Version-1.0-brightgreen)
+
 ![ThermoSurvival Logo](logo.png)
 
 ---
