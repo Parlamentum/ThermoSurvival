@@ -1,0 +1,110 @@
+# ThermoSurvival Configuration
+
+# How often to calculate temperature (in ticks). 20 ticks = 1 second.
+update-interval: 20
+
+# Temperature Settings
+# Range: -100 (Freezing) to 100 (Burning)
+base-temp: 0
+min-temp: -100
+max-temp: 100
+
+# World Support
+# List of worlds where the plugin is active. If empty, active in all worlds.
+# Or use "disabled-worlds" to blacklist.
+disabled-worlds:
+  - "world_creative"
+  - "spawn"
+
+# Biome Temperatures (Add more as needed)
+biomes:
+  SNOWY_PLAINS: -30
+  ICE_SPIKES: -40
+  DESERT: 30
+  BADLANDS: 35
+  NETHER_WASTES: 80
+  CRIMSON_FOREST: 70
+  WARPED_FOREST: 70
+  SOUL_SAND_VALLEY: 60
+  BASALT_DELTAS: 85
+  JUNGLE: 20
+  SAVANNA: 25
+
+# Block Modifiers
+# Format: MATERIAL: TEMP_CHANGE (uses default radius)
+# OR: MATERIAL:
+#       temp: 5.0
+#       radius: 3
+default-block-scan-radius: 2
+
+blocks:
+  LAVA: 
+    temp: 5.0
+    radius: 3
+  CAMPFIRE: 
+    temp: 3.0
+    radius: 4
+  TORCH: 1.0
+  FIRE: 4.0
+  MAGMA_BLOCK: 2.0
+  ICE: -2.0
+  PACKED_ICE: -3.0
+  BLUE_ICE: -4.0
+  SNOW_BLOCK: -1.0
+  POWDER_SNOW: -5.0
+
+# Weather Modifiers
+weather:
+  raining: -5
+  snowing: -10
+  storming: -8
+
+# Time of Day Modifiers
+# Day: 0 - 12000, Night: 12000 - 24000
+time:
+  day-modifier: 0
+  night-modifier: -10 # Nights are colder
+
+# Armor Insulation
+# Add temperature based on armor worn.
+armor:
+  LEATHER_HELMET: 2.0
+  LEATHER_CHESTPLATE: 3.0
+  LEATHER_LEGGINGS: 2.0
+  LEATHER_BOOTS: 1.0
+  # Iron is conductive, maybe makes you colder in cold biomes? 
+  # For simplicity, let's say metal armor makes you slightly colder (no insulation) or hotter (heavy).
+  # Let's stick to simple additions for now.
+  NETHERITE_CHESTPLATE: 5.0
+
+# Consumables
+# Instant temperature change when consumed
+consumables:
+  MUSHROOM_STEW: 15.0
+  RABBIT_STEW: 20.0
+  BEETROOT_SOUP: 15.0
+  POTION: -10.0 # Water bottle (awkward/mundane etc share ID, might need specific check code side)
+  MILK_BUCKET: -5.0
+
+# Thresholds for effects
+thresholds:
+  cold:
+    trigger: -50
+    effects:
+      - SLOWNESS:1
+      - HUNGER:1
+      - MINING_FATIGUE:1
+    damage-interval: 200
+    damage-amount: 1.0
+  
+  heat:
+    trigger: 50
+    effects:
+      - WEAKNESS:1
+      - HUNGER:2
+    fire-tick-trigger: 90
+
+# UI Settings
+ui:
+  bossbar: true
+  actionbar: true
