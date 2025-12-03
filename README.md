@@ -1,4 +1,19 @@
 # ❄️🔥 ThermoSurvival
+> **Survive the Elements. Master the Temperature.**
+
+![ThermoSurvival Logo](logo.png)
+
+---
+
+| | |
+|:---:|:---|
+| **Native Minecraft Version** | 1.20 |
+| **Tested Minecraft Versions** | 1.20.x |
+| **Source Code** | [GitHub Repository](https://github.com/parlamentum/ThermoSurvival) |
+| **Languages** | Java |
+| **Donation** | [Support the Project](https://ko-fi.com/parlamentum) |
+
+---
 
 **ThermoSurvival** is a lightweight, "Vanilla+" Spigot plugin that introduces a temperature mechanic to Minecraft. Survival becomes more challenging as you must manage your body temperature against the harsh elements of biomes, weather, and time.
 
