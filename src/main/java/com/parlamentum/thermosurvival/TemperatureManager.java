@@ -17,11 +17,13 @@ import java.util.UUID;
 public class TemperatureManager {
 
     private final ThermoSurvivalPlugin plugin;
+    private final WorldGuardHook worldGuardHook;
     private final Map<UUID, Double> playerTemperatures = new HashMap<>();
     private final Map<UUID, BossBar> playerBossBars = new HashMap<>();
 
-    public TemperatureManager(ThermoSurvivalPlugin plugin) {
+    public TemperatureManager(ThermoSurvivalPlugin plugin, WorldGuardHook worldGuardHook) {
         this.plugin = plugin;
+        this.worldGuardHook = worldGuardHook;
     }
 
     public double getTemperature(Player player) {
@@ -41,6 +43,11 @@ public class TemperatureManager {
     }
 
     public double calculateTargetTemperature(Player player) {
+        // Check if player is in a WorldGuard disabled region
+        if (worldGuardHook.isInDisabledRegion(player)) {
+            return plugin.getConfig().getDouble("base-temp", 0.0);
+        }
+
         double target = plugin.getConfig().getDouble("base-temp", 0.0);
 
         // Biome
@@ -153,24 +160,64 @@ public class TemperatureManager {
             bar.addPlayer(player);
         }
 
-        double min = plugin.getConfig().getDouble("min-temp", -100);
-        double max = plugin.getConfig().getDouble("max-temp", 100);
+        double min = plugin.getConfig().getDouble("min-temp", -30);
+        double max = plugin.getConfig().getDouble("max-temp", 50);
         double range = max - min;
         double progress = (temp - min) / range;
         progress = Math.max(0.0, Math.min(1.0, progress));
 
         bar.setProgress(progress);
 
-        if (temp > 40) {
-            bar.setColor(BarColor.RED);
-            bar.setTitle("Temperature: HOT (" + String.format("%.1f", temp) + ")");
-        } else if (temp < -20) {
-            bar.setColor(BarColor.BLUE);
-            bar.setTitle("Temperature: COLD (" + String.format("%.1f", temp) + ")");
-        } else {
-            bar.setColor(BarColor.GREEN);
-            bar.setTitle("Temperature: Normal (" + String.format("%.1f", temp) + ")");
+        // Determine color and title based on progressive thresholds
+        ConfigurationSection thresholds = plugin.getConfig().getConfigurationSection("thresholds");
+        String status = "Normal";
+        BarColor color = BarColor.GREEN;
+
+        if (thresholds != null) {
+            // Check extreme cold
+            if (thresholds.contains("cold_extreme") && temp <= thresholds.getDouble("cold_extreme.trigger")) {
+                color = BarColor.BLUE;
+                status = "FREEZING";
+            }
+            // Check severe cold
+            else if (thresholds.contains("cold_severe") && temp <= thresholds.getDouble("cold_severe.trigger")) {
+                color = BarColor.BLUE;
+                status = "VERY COLD";
+            }
+            // Check moderate cold
+            else if (thresholds.contains("cold_moderate") && temp <= thresholds.getDouble("cold_moderate.trigger")) {
+                color = BarColor.BLUE;
+                status = "Cold";
+            }
+            // Check mild cold
+            else if (thresholds.contains("cold_mild") && temp <= thresholds.getDouble("cold_mild.trigger")) {
+                color = BarColor.WHITE;
+                status = "Cool";
+            }
+            // Check extreme heat
+            else if (thresholds.contains("heat_extreme") && temp >= thresholds.getDouble("heat_extreme.trigger")) {
+                color = BarColor.RED;
+                status = "BURNING";
+            }
+            // Check severe heat
+            else if (thresholds.contains("heat_severe") && temp >= thresholds.getDouble("heat_severe.trigger")) {
+                color = BarColor.RED;
+                status = "VERY HOT";
+            }
+            // Check moderate heat
+            else if (thresholds.contains("heat_moderate") && temp >= thresholds.getDouble("heat_moderate.trigger")) {
+                color = BarColor.YELLOW;
+                status = "Hot";
+            }
+            // Check mild heat
+            else if (thresholds.contains("heat_mild") && temp >= thresholds.getDouble("heat_mild.trigger")) {
+                color = BarColor.YELLOW;
+                status = "Warm";
+            }
         }
+
+        bar.setColor(color);
+        bar.setTitle("Temperature: " + status + " (" + String.format("%.1f", temp) + "°C)");
     }
 
     public void cleanup() {

@@ -4,10 +4,10 @@
 update-interval: 20
 
 # Temperature Settings
-# Range: -100 (Freezing) to 100 (Burning)
-base-temp: 0
-min-temp: -100
-max-temp: 100
+# Range: -30 (Extreme Cold) to 50 (Extreme Heat) - Celsius based
+base-temp: 20
+min-temp: -30
+max-temp: 50
 
 # World Support
 # List of worlds where the plugin is active. If empty, active in all worlds.
@@ -16,19 +16,91 @@ disabled-worlds:
   - "world_creative"
   - "spawn"
 
+# WorldGuard Integration
+worldguard:
+  enabled: true
+  disabled-regions:
+    - "spawn_region"
+    - "safe_zone"
+
 # Biome Temperatures (Add more as needed)
 biomes:
-  SNOWY_PLAINS: -30
-  ICE_SPIKES: -40
-  DESERT: 30
-  BADLANDS: 35
-  NETHER_WASTES: 80
-  CRIMSON_FOREST: 70
-  WARPED_FOREST: 70
-  SOUL_SAND_VALLEY: 60
-  BASALT_DELTAS: 85
-  JUNGLE: 20
-  SAVANNA: 25
+  # Overworld - Temperate/Lush
+  PLAINS: 20
+  SUNFLOWER_PLAINS: 22
+  FOREST: 18
+  FLOWER_FOREST: 18
+  BIRCH_FOREST: 18
+  OLD_GROWTH_BIRCH_FOREST: 18
+  DARK_FOREST: 15
+  SWAMP: 24
+  MANGROVE_SWAMP: 26
+  JUNGLE: 30
+  SPARSE_JUNGLE: 28
+  BAMBOO_JUNGLE: 30
+  RIVER: 18
+  BEACH: 25
+  MUSHROOM_FIELDS: 20
+  CHERRY_GROVE: 15
+  MEADOW: 12
+  LUSH_CAVES: 16
+  DRIPSTONE_CAVES: 12
+
+  # Overworld - Cold/Snowy
+  SNOWY_PLAINS: -10
+  ICE_SPIKES: -20
+  SNOWY_TAIGA: -12
+  SNOWY_BEACH: -8
+  GROVE: -10
+  SNOWY_SLOPES: -15
+  JAGGED_PEAKS: -18
+  FROZEN_PEAKS: -25
+  STONY_PEAKS: 5
+  FROZEN_RIVER: -8
+
+  # Overworld - Hot/Arid
+  DESERT: 40
+  BADLANDS: 38
+  WOODED_BADLANDS: 35
+  ERODED_BADLANDS: 38
+  SAVANNA: 32
+  SAVANNA_PLATEAU: 28
+  WINDSWEPT_SAVANNA: 26
+
+  # Overworld - Oceans
+  WARM_OCEAN: 22
+  LUKEWARM_OCEAN: 18
+  DEEP_LUKEWARM_OCEAN: 16
+  OCEAN: 14
+  DEEP_OCEAN: 10
+  COLD_OCEAN: 5
+  DEEP_COLD_OCEAN: 2
+  FROZEN_OCEAN: -5
+  DEEP_FROZEN_OCEAN: -12
+
+  # Overworld - Others
+  TAIGA: 10
+  OLD_GROWTH_PINE_TAIGA: 8
+  OLD_GROWTH_SPRUCE_TAIGA: 8
+  WINDSWEPT_HILLS: 8
+  WINDSWEPT_GRAVELLY_HILLS: 6
+  WINDSWEPT_FOREST: 10
+  STONY_SHORE: 12
+  DEEP_DARK: 8
+
+  # Nether
+  NETHER_WASTES: 50
+  SOUL_SAND_VALLEY: 45
+  CRIMSON_FOREST: 48
+  WARPED_FOREST: 48
+  BASALT_DELTAS: 50
+
+  # The End
+  THE_END: -18
+  SMALL_END_ISLANDS: -22
+  END_MIDLANDS: -20
+  END_HIGHLANDS: -20
+  END_BARRENS: -25
 
 # Block Modifiers
 # Format: MATERIAL: TEMP_CHANGE (uses default radius)
@@ -39,72 +111,133 @@ default-block-scan-radius: 2
 
 blocks:
   LAVA: 
-    temp: 5.0
+    temp: 8.0
     radius: 3
   CAMPFIRE: 
+    temp: 5.0
+    radius: 4
+  SOUL_CAMPFIRE:
     temp: 3.0
     radius: 4
-  TORCH: 1.0
-  FIRE: 4.0
-  MAGMA_BLOCK: 2.0
-  ICE: -2.0
-  PACKED_ICE: -3.0
-  BLUE_ICE: -4.0
-  SNOW_BLOCK: -1.0
-  POWDER_SNOW: -5.0
+  TORCH: 1.5
+  SOUL_TORCH: 0.5
+  FIRE: 6.0
+  SOUL_FIRE: 4.0
+  MAGMA_BLOCK: 4.0
+  ICE: -3.0
+  PACKED_ICE: -4.0
+  BLUE_ICE: -6.0
+  SNOW_BLOCK: -2.0
+  POWDER_SNOW: -8.0
 
 # Weather Modifiers
 weather:
-  raining: -5
-  snowing: -10
-  storming: -8
+  raining: -3
+  snowing: -8
+  storming: -5
 
 # Time of Day Modifiers
 # Day: 0 - 12000, Night: 12000 - 24000
 time:
-  day-modifier: 0
-  night-modifier: -10 # Nights are colder
+  day-modifier: 2
+  night-modifier: -5 # Nights are colder
 
 # Armor Insulation
 # Add temperature based on armor worn.
 armor:
-  LEATHER_HELMET: 2.0
-  LEATHER_CHESTPLATE: 3.0
-  LEATHER_LEGGINGS: 2.0
-  LEATHER_BOOTS: 1.0
-  # Iron is conductive, maybe makes you colder in cold biomes? 
-  # For simplicity, let's say metal armor makes you slightly colder (no insulation) or hotter (heavy).
-  # Let's stick to simple additions for now.
+  LEATHER_HELMET: -2.0
+  LEATHER_CHESTPLATE: -3.0
+  LEATHER_LEGGINGS: -2.0
+  LEATHER_BOOTS: -1.0
+  NETHERITE_HELMET: 3.0
   NETHERITE_CHESTPLATE: 5.0
+  NETHERITE_LEGGINGS: 3.0
+  NETHERITE_BOOTS: 2.0
 
 # Consumables
 # Instant temperature change when consumed
 consumables:
-  MUSHROOM_STEW: 15.0
-  RABBIT_STEW: 20.0
-  BEETROOT_SOUP: 15.0
-  POTION: -10.0 # Water bottle (awkward/mundane etc share ID, might need specific check code side)
-  MILK_BUCKET: -5.0
+  MUSHROOM_STEW: -8.0
+  RABBIT_STEW: -10.0
+  BEETROOT_SOUP: -8.0
+  SUSPICIOUS_STEW: -6.0
+  POTION: -5.0
+  MILK_BUCKET: -3.0
+  SNOWBALL: -2.0
 
-# Thresholds for effects
+# Thresholds for effects - Progressive system
 thresholds:
-  cold:
-    trigger: -50
+  # Cold Effects (Progressive)
+  cold_mild:
+    trigger: 10  # Below 10°C
+    effects:
+      - SLOWNESS:0
+  
+  cold_moderate:
+    trigger: 5  # Below 5°C
     effects:
       - SLOWNESS:1
-      - HUNGER:1
+      - MINING_FATIGUE:0
+    damage-interval: 400
+    damage-amount: 0.5
+  
+  cold_severe:
+    trigger: -5  # Below -5°C
+    effects:
+      - SLOWNESS:2
       - MINING_FATIGUE:1
+      - HUNGER:0
     damage-interval: 200
     damage-amount: 1.0
   
-  heat:
-    trigger: 50
+  cold_extreme:
+    trigger: -15  # Below -15°C
     effects:
+      - SLOWNESS:3
+      - MINING_FATIGUE:2
+      - HUNGER:1
       - WEAKNESS:1
+    damage-interval: 100
+    damage-amount: 2.0
+    world-border-effect: true
+  
+  # Heat Effects (Progressive)
+  heat_mild:
+    trigger: 28  # Above 28°C
+    effects:
+      - HUNGER:0
+  
+  heat_moderate:
+    trigger: 33  # Above 33°C
+    effects:
+      - HUNGER:1
+      - WEAKNESS:0
+    damage-interval: 400
+    damage-amount: 0.5
+  
+  heat_severe:
+    trigger: 38  # Above 38°C
+    effects:
       - HUNGER:2
-    fire-tick-trigger: 90
+      - WEAKNESS:1
+      - SLOWNESS:0
+    damage-interval: 200
+    damage-amount: 1.0
+    fire-tick-trigger: 42
+  
+  heat_extreme:
+    trigger: 43  # Above 43°C
+    effects:
+      - HUNGER:3
+      - WEAKNESS:2
+      - SLOWNESS:1
+      - NAUSEA:0
+    damage-interval: 100
+    damage-amount: 2.0
+    fire-tick-trigger: 43
+    world-border-effect: true
 
 # UI Settings
 ui:
   bossbar: true
-  actionbar: true
+  actionbar: false

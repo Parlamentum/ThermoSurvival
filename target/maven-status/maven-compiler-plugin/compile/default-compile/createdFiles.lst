@@ -1,0 +1,6 @@
+com\parlamentum\thermosurvival\PlayerListener.class
+com\parlamentum\thermosurvival\TemperatureTask.class
+com\parlamentum\thermosurvival\ThermoCommandExecutor.class
+com\parlamentum\thermosurvival\ThermoSurvivalPlugin.class
+com\parlamentum\thermosurvival\TemperatureManager.class
+com\parlamentum\thermosurvival\WorldGuardHook.class

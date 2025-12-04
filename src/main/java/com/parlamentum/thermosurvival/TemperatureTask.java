@@ -68,32 +68,81 @@ public class TemperatureTask extends BukkitRunnable {
         if (thresholds == null)
             return;
 
-        // Cold
-        if (thresholds.contains("cold")) {
-            double trigger = thresholds.getDouble("cold.trigger");
-            if (temp <= trigger) {
-                List<String> effects = thresholds.getStringList("cold.effects");
-                applyPotionEffects(player, effects);
+        // Find the most severe applicable threshold
+        String[] coldLevels = { "cold_extreme", "cold_severe", "cold_moderate", "cold_mild" };
+        String[] heatLevels = { "heat_extreme", "heat_severe", "heat_moderate", "heat_mild" };
 
-                int dmgInterval = thresholds.getInt("cold.damage-interval", 200);
-                if (tickCounter % (dmgInterval / plugin.getConfig().getLong("update-interval", 20)) == 0) {
-                    player.damage(thresholds.getDouble("cold.damage-amount", 1.0));
+        boolean effectApplied = false;
+        boolean worldBorderEffect = false;
+
+        // Check cold thresholds (from most severe to least)
+        for (String level : coldLevels) {
+            if (thresholds.contains(level)) {
+                double trigger = thresholds.getDouble(level + ".trigger");
+                if (temp <= trigger) {
+                    List<String> effects = thresholds.getStringList(level + ".effects");
+                    applyPotionEffects(player, effects);
+
+                    // Apply damage if configured
+                    if (thresholds.contains(level + ".damage-interval")) {
+                        int dmgInterval = thresholds.getInt(level + ".damage-interval", 200);
+                        if (tickCounter % (dmgInterval / plugin.getConfig().getLong("update-interval", 20)) == 0) {
+                            player.damage(thresholds.getDouble(level + ".damage-amount", 1.0));
+                        }
+                    }
+
+                    // Check for world border effect
+                    if (thresholds.getBoolean(level + ".world-border-effect", false)) {
+                        worldBorderEffect = true;
+                    }
+
+                    effectApplied = true;
+                    break; // Only apply the most severe level
                 }
             }
         }
 
-        // Heat
-        if (thresholds.contains("heat")) {
-            double trigger = thresholds.getDouble("heat.trigger");
-            if (temp >= trigger) {
-                List<String> effects = thresholds.getStringList("heat.effects");
-                applyPotionEffects(player, effects);
+        // Check heat thresholds (from most severe to least)
+        if (!effectApplied) {
+            for (String level : heatLevels) {
+                if (thresholds.contains(level)) {
+                    double trigger = thresholds.getDouble(level + ".trigger");
+                    if (temp >= trigger) {
+                        List<String> effects = thresholds.getStringList(level + ".effects");
+                        applyPotionEffects(player, effects);
 
-                double fireTrigger = thresholds.getDouble("heat.fire-tick-trigger", 90);
-                if (temp >= fireTrigger) {
-                    player.setFireTicks(40);
+                        // Apply damage if configured
+                        if (thresholds.contains(level + ".damage-interval")) {
+                            int dmgInterval = thresholds.getInt(level + ".damage-interval", 200);
+                            if (tickCounter % (dmgInterval / plugin.getConfig().getLong("update-interval", 20)) == 0) {
+                                player.damage(thresholds.getDouble(level + ".damage-amount", 1.0));
+                            }
+                        }
+
+                        // Check for fire ticks
+                        if (thresholds.contains(level + ".fire-tick-trigger")) {
+                            double fireTrigger = thresholds.getDouble(level + ".fire-tick-trigger");
+                            if (temp >= fireTrigger) {
+                                player.setFireTicks(40);
+                            }
+                        }
+
+                        // Check for world border effect
+                        if (thresholds.getBoolean(level + ".world-border-effect", false)) {
+                            worldBorderEffect = true;
+                        }
+
+                        break; // Only apply the most severe level
+                    }
                 }
             }
+        }
+
+        // Apply world border effect if needed (creates dark vignette like approaching
+        // world border)
+        if (worldBorderEffect) {
+            // Use wither effect for visual indicator
+            player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 0, true, false, false));
         }
     }
 
@@ -119,10 +168,19 @@ public class TemperatureTask extends BukkitRunnable {
         if (!plugin.getConfig().getBoolean("ui.actionbar", true))
             return;
 
+        // Dynamic thresholds
+        double coldTrigger = -5.0;
+        double heatTrigger = 50.0;
+        ConfigurationSection thresholds = plugin.getConfig().getConfigurationSection("thresholds");
+        if (thresholds != null) {
+            coldTrigger = thresholds.getDouble("cold.trigger", -5.0);
+            heatTrigger = thresholds.getDouble("heat.trigger", 50.0);
+        }
+
         ChatColor color = ChatColor.GREEN;
-        if (temp > 40)
+        if (temp >= heatTrigger)
             color = ChatColor.RED;
-        else if (temp < -20)
+        else if (temp <= coldTrigger)
             color = ChatColor.AQUA;
 
         String msg = color + "Temp: " + String.format("%.1f", temp) + "°";

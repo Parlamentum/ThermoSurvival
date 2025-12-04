@@ -1,5 +1,5 @@
 name: ThermoSurvival
-version: 1.0
+version: 1.0.1
 main: com.parlamentum.thermosurvival.ThermoSurvivalPlugin
 api-version: 1.20
 author: parlamentum
@@ -8,4 +8,10 @@ permissions:
   thermosurvival.bypass:
     description: Bypass temperature effects
     default: op
+commands:
+  thermo:
+    description: Main command for ThermoSurvival
+    usage: /thermo <reload|toggle>
+    permission: thermosurvival.admin
+softdepend: [WorldGuard]
 
