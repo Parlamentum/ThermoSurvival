@@ -142,6 +142,11 @@ time:
   day-modifier: 2
   night-modifier: -5 # Nights are colder
 
+# Cave Settings
+# Caves are cold - deeper caves are colder
+caves:
+  cold-modifier: -0.5 # Temperature change per block below Y=40 when in a cave
+
 # Armor Insulation
 # Add temperature based on armor worn.
 armor:
@@ -241,3 +246,55 @@ thresholds:
 ui:
   bossbar: true
   actionbar: false
+  events:
+    chat: true
+    actionbar: false
+
+# Messages - All text is translatable
+# Use & for color codes: &a = green, &c = red, &e = yellow, &b = aqua, etc.
+messages:
+  # Command messages
+  no-permission: "&cYou do not have permission to use this command."
+  usage-main: "&cUsage: /thermo <reload|toggle>"
+  usage-toggle: "&cUsage: /thermo toggle <bossbar|actionbar>"
+  config-reloaded: "&aThermoSurvival configuration reloaded!"
+  bossbar-toggled-on: "&aBossBar toggled ON"
+  bossbar-toggled-off: "&aBossBar toggled OFF"
+  actionbar-toggled-on: "&aActionBar toggled ON"
+  actionbar-toggled-off: "&aActionBar toggled OFF"
+  invalid-toggle: "&cInvalid toggle option. Use bossbar or actionbar."
+  unknown-command: "&cUnknown command."
+  
+  # Temperature status messages
+  status-normal: "Normal"
+  status-cool: "Cool"
+  status-cold: "Cold"
+  status-very-cold: "VERY COLD"
+  status-freezing: "FREEZING"
+  status-warm: "Warm"
+  status-hot: "Hot"
+  status-very-hot: "VERY HOT"
+  status-burning: "BURNING"
+  
+  # BossBar title format (use {status} and {temp} as placeholders)
+  bossbar-title: "Temperature: {status} ({temp}°C)"
+  
+  # Event messages
+  acid-rain: "&2⚠ Acid Rain!"
+  
+  # Cold event messages
+  cold-mild: "&b❄ You feel a chill..."
+  cold-moderate: "&b❄❄ The cold is biting!"
+  cold-severe: "&9❄❄❄ You're freezing!"
+  cold-extreme: "&1❄❄❄❄ EXTREME COLD!"
+  
+  # Heat event messages
+  heat-mild: "&e🔥 You're getting warm..."
+  heat-moderate: "&6🔥🔥 The heat is intense!"
+  heat-severe: "&c🔥🔥🔥 You're overheating!"
+  heat-extreme: "&4🔥🔥🔥🔥 EXTREME HEAT!"
+  
+  # Environmental change messages
+  biome-warmer: "&e☀ You shifted to a warmer area"
+  biome-colder: "&b❄ You shifted to a colder area"
+  sunrise: "&6☀ Sun warms you now"
