@@ -1,7 +1,7 @@
 package com.parlamentum.thermosurvival;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -10,30 +10,33 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import org.bukkit.World;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class TemperatureManager {
 
     private final ThermoSurvivalPlugin plugin;
     private final WorldGuardHook worldGuardHook;
+    private final ConfigCache configCache;
     private final Map<UUID, Double> playerTemperatures = new HashMap<>();
     private final Map<UUID, BossBar> playerBossBars = new HashMap<>();
 
     public TemperatureManager(ThermoSurvivalPlugin plugin, WorldGuardHook worldGuardHook) {
         this.plugin = plugin;
         this.worldGuardHook = worldGuardHook;
+        this.configCache = new ConfigCache(plugin);
     }
 
     public double getTemperature(Player player) {
-        return playerTemperatures.getOrDefault(player.getUniqueId(), plugin.getConfig().getDouble("base-temp", 0.0));
+        return playerTemperatures.getOrDefault(player.getUniqueId(), configCache.getBaseTemp());
     }
 
     public void setTemperature(Player player, double temp) {
-        double min = plugin.getConfig().getDouble("min-temp", -100);
-        double max = plugin.getConfig().getDouble("max-temp", 100);
-        temp = Math.max(min, Math.min(max, temp));
+        temp = Math.max(configCache.getMinTemp(), Math.min(configCache.getMaxTemp(), temp));
         playerTemperatures.put(player.getUniqueId(), temp);
         updateBossBar(player, temp);
     }
@@ -43,19 +46,28 @@ public class TemperatureManager {
     }
 
     public double calculateTargetTemperature(Player player) {
+        configCache.checkAndUpdateCache();
+        
         // Check if player is in a WorldGuard disabled region
         if (worldGuardHook.isInDisabledRegion(player)) {
-            return plugin.getConfig().getDouble("base-temp", 0.0);
+            return configCache.getBaseTemp();
         }
 
-        double target = plugin.getConfig().getDouble("base-temp", 0.0);
+        double target = configCache.getBaseTemp();
+        Location loc = player.getLocation();
+        
+        // Check if chunk is loaded (performance optimization)
+        if (!loc.getChunk().isLoaded()) {
+            return target; // Return base temp if chunk not loaded
+        }
 
-        // Biome
-        String biomeName = player.getLocation().getBlock().getBiome().name();
-        ConfigurationSection biomes = plugin.getConfig().getConfigurationSection("biomes");
-        if (biomes != null && biomes.contains(biomeName)) {
-            target = biomes.getDouble(biomeName);
+        // Biome - use cached value
+        String biomeName = player.getWorld().getBiome(loc).name();
+        Double biomeTemp = configCache.getBiomeTemp(biomeName);
+        if (biomeTemp != null) {
+            target = biomeTemp;
         } else {
+            // Fallback biome detection
             if (biomeName.contains("SNOW") || biomeName.contains("ICE")) {
                 target -= 20;
             } else if (biomeName.contains("DESERT") || biomeName.contains("BADLANDS")) {
@@ -65,80 +77,121 @@ public class TemperatureManager {
             }
         }
 
-        // Height
-        int y = player.getLocation().getBlockY();
+        // Height and Caves
+        int y = loc.getBlockY();
+        Block block = loc.getBlock();
+        
         if (y > 80) {
             target -= (y - 80) / 10.0;
         } else if (y < 40) {
-            target += (40 - y) / 10.0;
-        }
-
-        // Weather
-        if (player.getWorld().hasStorm()) {
-            if (player.getWorld().isThundering()) {
-                target += plugin.getConfig().getDouble("weather.storming", -8);
+            // Caves are cold - check if player is underground
+            boolean isUnderground = false;
+            int skyLight = block.getLightFromSky();
+            
+            // If sky light is very low, player is likely in a cave
+            if (skyLight < 4) {
+                isUnderground = true;
             } else {
-                double rainMod = plugin.getConfig().getDouble("weather.raining", -5);
-                double snowMod = plugin.getConfig().getDouble("weather.snowing", -10);
+                // Check if there are solid blocks above (cave ceiling) - only check 5 blocks for performance
+                int blocksAbove = 0;
+                for (int i = 1; i <= 5; i++) {
+                    Block above = loc.clone().add(0, i, 0).getBlock();
+                    if (above.getType().isSolid()) {
+                        blocksAbove++;
+                    }
+                }
+                if (blocksAbove >= 3) {
+                    isUnderground = true;
+                }
+            }
+            
+            if (isUnderground) {
+                // Caves are cold - apply cold modifier based on depth
+                int depth = 40 - y; // How deep below Y=40
+                target += configCache.getCaveColdModifier() * depth; // Deeper = colder
+            } else {
+                // Not in cave, normal underground warmth
+                target += (40 - y) / 10.0;
+            }
+        }
+
+        // Weather - use cached values
+        World world = player.getWorld();
+        if (world.hasStorm()) {
+            if (world.isThundering()) {
+                target += configCache.getStormModifier();
+            } else {
                 if (target < 0) {
-                    target += snowMod;
+                    target += configCache.getSnowModifier();
                 } else {
-                    target += rainMod;
+                    target += configCache.getRainModifier();
                 }
             }
         }
 
-        // Time of Day
-        long time = player.getWorld().getTime();
+        // Time of Day - use cached values
+        long time = world.getTime();
         if (time > 12300 && time < 23850) { // Night
-            target += plugin.getConfig().getDouble("time.night-modifier", -10);
+            target += configCache.getNightModifier();
         } else {
-            target += plugin.getConfig().getDouble("time.day-modifier", 0);
+            target += configCache.getDayModifier();
         }
 
-        // Armor
-        ConfigurationSection armorConfig = plugin.getConfig().getConfigurationSection("armor");
+        // Armor - use cached config
+        ConfigurationSection armorConfig = configCache.getArmor();
         if (armorConfig != null) {
-            for (ItemStack item : player.getInventory().getArmorContents()) {
-                if (item != null && armorConfig.contains(item.getType().name())) {
-                    target += armorConfig.getDouble(item.getType().name());
-                }
+            ItemStack helmet = player.getInventory().getHelmet();
+            ItemStack chestplate = player.getInventory().getChestplate();
+            ItemStack leggings = player.getInventory().getLeggings();
+            ItemStack boots = player.getInventory().getBoots();
+            
+            if (helmet != null && armorConfig.contains(helmet.getType().name())) {
+                target += armorConfig.getDouble(helmet.getType().name());
+            }
+            if (chestplate != null && armorConfig.contains(chestplate.getType().name())) {
+                target += armorConfig.getDouble(chestplate.getType().name());
+            }
+            if (leggings != null && armorConfig.contains(leggings.getType().name())) {
+                target += armorConfig.getDouble(leggings.getType().name());
+            }
+            if (boots != null && armorConfig.contains(boots.getType().name())) {
+                target += armorConfig.getDouble(boots.getType().name());
             }
         }
 
-        // Nearby Blocks (Variable Radius)
-        ConfigurationSection blocks = plugin.getConfig().getConfigurationSection("blocks");
-        int defaultRadius = plugin.getConfig().getInt("default-block-scan-radius", 2);
-
-        if (blocks != null) {
-            // Optimization: Instead of scanning a huge area, we scan a reasonable max area
-            // and check distance for specific blocks?
-            // OR: Just scan the max possible radius needed.
-            // Let's find max radius first or just pick a safe upper limit like 5.
-            int maxRadius = 5;
-
-            Block center = player.getLocation().getBlock();
+        // Nearby Blocks - OPTIMIZED: Only scan blocks that are in our cache
+        Set<String> cachedBlockTypes = configCache.getCachedBlockTypes();
+        if (!cachedBlockTypes.isEmpty()) {
+            // Find max radius needed
+            int maxRadius = configCache.getDefaultBlockRadius();
+            for (String blockType : cachedBlockTypes) {
+                ConfigCache.BlockConfig blockConfig = configCache.getBlockConfig(blockType);
+                if (blockConfig != null && blockConfig.radius > maxRadius) {
+                    maxRadius = blockConfig.radius;
+                }
+            }
+            
+            // Limit max radius to 4 for performance (was 5, now 4)
+            maxRadius = Math.min(maxRadius, 4);
+            
+            Block center = loc.getBlock();
+            // Only scan blocks that are in our cache - much faster!
             for (int x = -maxRadius; x <= maxRadius; x++) {
                 for (int yOffset = -maxRadius; yOffset <= maxRadius; yOffset++) {
                     for (int z = -maxRadius; z <= maxRadius; z++) {
                         Block b = center.getRelative(x, yOffset, z);
-                        String type = b.getType().name();
-                        if (blocks.contains(type)) {
-                            // Check if it's a simple value or section
-                            double blockTemp = 0;
-                            int blockRadius = defaultRadius;
-
-                            if (blocks.isConfigurationSection(type)) {
-                                blockTemp = blocks.getDouble(type + ".temp");
-                                blockRadius = blocks.getInt(type + ".radius", defaultRadius);
-                            } else {
-                                blockTemp = blocks.getDouble(type);
-                            }
-
-                            // Check distance
-                            if (Math.abs(x) <= blockRadius && Math.abs(yOffset) <= blockRadius
-                                    && Math.abs(z) <= blockRadius) {
-                                target += blockTemp;
+                        String blockType = b.getType().name();
+                        
+                        // Only check if this block type is in our cache
+                        if (cachedBlockTypes.contains(blockType)) {
+                            ConfigCache.BlockConfig blockConfig = configCache.getBlockConfig(blockType);
+                            if (blockConfig != null) {
+                                // Check distance
+                                if (Math.abs(x) <= blockConfig.radius && 
+                                    Math.abs(yOffset) <= blockConfig.radius &&
+                                    Math.abs(z) <= blockConfig.radius) {
+                                    target += blockConfig.temp;
+                                }
                             }
                         }
                     }
@@ -170,54 +223,60 @@ public class TemperatureManager {
 
         // Determine color and title based on progressive thresholds
         ConfigurationSection thresholds = plugin.getConfig().getConfigurationSection("thresholds");
-        String status = "Normal";
+        String statusKey = "status-normal";
+        String status = plugin.getMessage(statusKey, "Normal");
         BarColor color = BarColor.GREEN;
 
         if (thresholds != null) {
             // Check extreme cold
             if (thresholds.contains("cold_extreme") && temp <= thresholds.getDouble("cold_extreme.trigger")) {
                 color = BarColor.BLUE;
-                status = "FREEZING";
+                statusKey = "status-freezing";
             }
             // Check severe cold
             else if (thresholds.contains("cold_severe") && temp <= thresholds.getDouble("cold_severe.trigger")) {
                 color = BarColor.BLUE;
-                status = "VERY COLD";
+                statusKey = "status-very-cold";
             }
             // Check moderate cold
             else if (thresholds.contains("cold_moderate") && temp <= thresholds.getDouble("cold_moderate.trigger")) {
                 color = BarColor.BLUE;
-                status = "Cold";
+                statusKey = "status-cold";
             }
             // Check mild cold
             else if (thresholds.contains("cold_mild") && temp <= thresholds.getDouble("cold_mild.trigger")) {
                 color = BarColor.WHITE;
-                status = "Cool";
+                statusKey = "status-cool";
             }
             // Check extreme heat
             else if (thresholds.contains("heat_extreme") && temp >= thresholds.getDouble("heat_extreme.trigger")) {
                 color = BarColor.RED;
-                status = "BURNING";
+                statusKey = "status-burning";
             }
             // Check severe heat
             else if (thresholds.contains("heat_severe") && temp >= thresholds.getDouble("heat_severe.trigger")) {
                 color = BarColor.RED;
-                status = "VERY HOT";
+                statusKey = "status-very-hot";
             }
             // Check moderate heat
             else if (thresholds.contains("heat_moderate") && temp >= thresholds.getDouble("heat_moderate.trigger")) {
                 color = BarColor.YELLOW;
-                status = "Hot";
+                statusKey = "status-hot";
             }
             // Check mild heat
             else if (thresholds.contains("heat_mild") && temp >= thresholds.getDouble("heat_mild.trigger")) {
                 color = BarColor.YELLOW;
-                status = "Warm";
+                statusKey = "status-warm";
             }
         }
 
+        status = plugin.getMessage(statusKey, status);
         bar.setColor(color);
-        bar.setTitle("Temperature: " + status + " (" + String.format("%.1f", temp) + "°C)");
+        
+        // Get bossbar title format and replace placeholders
+        String titleFormat = plugin.getMessage("bossbar-title", "Temperature: {status} ({temp}°C)");
+        String title = titleFormat.replace("{status}", status).replace("{temp}", String.format("%.1f", temp));
+        bar.setTitle(title);
     }
 
     public void cleanup() {
@@ -234,5 +293,9 @@ public class TemperatureManager {
         if (bar != null) {
             bar.removePlayer(player);
         }
+    }
+    
+    public ConfigCache getConfigCache() {
+        return configCache;
     }
 }

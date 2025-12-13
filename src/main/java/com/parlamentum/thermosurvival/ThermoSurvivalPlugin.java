@@ -23,7 +23,12 @@ public class ThermoSurvivalPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(this, temperatureManager), this);
 
         // Register commands
-        getCommand("thermo").setExecutor(new ThermoCommandExecutor(this, temperatureManager));
+        org.bukkit.command.PluginCommand thermoCommand = getCommand("thermo");
+        if (thermoCommand != null) {
+            thermoCommand.setExecutor(new ThermoCommandExecutor(this, temperatureManager));
+        } else {
+            getLogger().warning("Command 'thermo' not found in plugin.yml! Plugin may not work correctly.");
+        }
 
         // Start task
         long interval = getConfig().getLong("update-interval", 20L);
@@ -41,5 +46,16 @@ public class ThermoSurvivalPlugin extends JavaPlugin {
             temperatureManager.cleanup();
         }
         getLogger().info("ThermoSurvival has been disabled!");
+    }
+
+    /**
+     * Get a translated message from config
+     * @param path The config path to the message
+     * @param defaultValue The default value if message not found
+     * @return The translated message with color codes
+     */
+    public String getMessage(String path, String defaultValue) {
+        String message = getConfig().getString("messages." + path, defaultValue);
+        return org.bukkit.ChatColor.translateAlternateColorCodes('&', message);
     }
 }

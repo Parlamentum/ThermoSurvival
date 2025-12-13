@@ -1,6 +1,5 @@
 package com.parlamentum.thermosurvival;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,12 +17,12 @@ public class ThermoCommandExecutor implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("thermosurvival.admin")) {
-            sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
+            sender.sendMessage(plugin.getMessage("no-permission", "&cYou do not have permission to use this command."));
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: /thermo <reload|toggle>");
+            sender.sendMessage(plugin.getMessage("usage-main", "&cUsage: /thermo <reload|toggle>"));
             return true;
         }
 
@@ -31,11 +30,11 @@ public class ThermoCommandExecutor implements CommandExecutor {
         switch (sub) {
             case "reload":
                 plugin.reloadConfig();
-                sender.sendMessage(ChatColor.GREEN + "ThermoSurvival configuration reloaded!");
+                sender.sendMessage(plugin.getMessage("config-reloaded", "&aThermoSurvival configuration reloaded!"));
                 break;
             case "toggle":
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /thermo toggle <bossbar|actionbar>");
+                    sender.sendMessage(plugin.getMessage("usage-toggle", "&cUsage: /thermo toggle <bossbar|actionbar>"));
                     return true;
                 }
                 String type = args[1].toLowerCase();
@@ -49,18 +48,24 @@ public class ThermoCommandExecutor implements CommandExecutor {
                     } else { // If we just turned it off
                         manager.cleanup(); // Remove all bars
                     }
-                    sender.sendMessage(ChatColor.GREEN + "BossBar toggled " + (!current ? "ON" : "OFF"));
+                    String toggleMsg = !current ? 
+                        plugin.getMessage("bossbar-toggled-on", "&aBossBar toggled ON") :
+                        plugin.getMessage("bossbar-toggled-off", "&aBossBar toggled OFF");
+                    sender.sendMessage(toggleMsg);
                 } else if (type.equals("actionbar")) {
                     boolean current = plugin.getConfig().getBoolean("ui.actionbar", true);
                     plugin.getConfig().set("ui.actionbar", !current);
                     plugin.saveConfig();
-                    sender.sendMessage(ChatColor.GREEN + "ActionBar toggled " + (!current ? "ON" : "OFF"));
+                    String toggleMsg = !current ? 
+                        plugin.getMessage("actionbar-toggled-on", "&aActionBar toggled ON") :
+                        plugin.getMessage("actionbar-toggled-off", "&aActionBar toggled OFF");
+                    sender.sendMessage(toggleMsg);
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Invalid toggle option. Use bossbar or actionbar.");
+                    sender.sendMessage(plugin.getMessage("invalid-toggle", "&cInvalid toggle option. Use bossbar or actionbar."));
                 }
                 break;
             default:
-                sender.sendMessage(ChatColor.RED + "Unknown command.");
+                sender.sendMessage(plugin.getMessage("unknown-command", "&cUnknown command."));
                 break;
         }
 
